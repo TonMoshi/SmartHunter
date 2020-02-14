@@ -1,12 +1,13 @@
-﻿using SmartHunter.Core.Helpers;
-using SmartHunter.Game.Data;
-using SmartHunter.Game.Data.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using SmartHunter.Core.Helpers;
+using SmartHunter.Game.Config;
+using SmartHunter.Game.Data;
+using SmartHunter.Game.Data.ViewModels;
 
 namespace SmartHunter.Game.Helpers
 {
@@ -14,6 +15,12 @@ namespace SmartHunter.Game.Helpers
     {
         public static bool TryParseHex(string hexString, out long hexNumber)
         {
+            if (hexString.StartsWith("-"))
+            {
+                bool res = long.TryParse(hexString.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out hexNumber);
+                hexNumber = (-1) * hexNumber;
+                return res;
+            }
             return long.TryParse(hexString, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out hexNumber);
         }
 
@@ -23,24 +30,25 @@ namespace SmartHunter.Game.Helpers
         }
 
         // TODO: Wouldn't it be nice if all this were data driven?
-        private static class DataOffsets
+        public static class DataOffsets
         {
             public static class Monster
             {
                 // Doubly linked list
-                public static readonly ulong PreviousMonsterPtr = 0x28;
-                public static readonly ulong NextMonsterPtr = 0x30;
-                public static readonly ulong SizeScale = 0x174;
-                public static readonly ulong ModelPtr = 0x290;
-                public static readonly ulong PartCollection = 0x129D8;
-                public static readonly ulong RemovablePartCollection = PartCollection + 0x1ED0;
+                public static readonly ulong MonsterStartOfStructOffset = 0x40;
+                public static readonly ulong NextMonsterOffset = 0x18;
+                public static readonly ulong MonsterHealthComponentOffset = 0x7670;
+                public static readonly ulong PreviousMonsterOffset = 0x10;
+                public static readonly ulong SizeScale = 0x180;
+                public static readonly ulong PartCollection = 0x14528;
+                public static readonly ulong RemovablePartCollection = PartCollection + 0x22A0 - 0xF0 - 0xF0 - 0xF0;
                 public static readonly ulong StatusEffectCollection = 0x19900;
             }
 
             public static class MonsterModel
             {
-                public static readonly int IdLength = 64;
-                public static readonly ulong Id = 0x0C;
+                public static readonly int IdLength = 32; // 64?
+                public static readonly ulong IdOffset = 0x179;
             }
 
             public static class MonsterHealthComponent
@@ -52,7 +60,6 @@ namespace SmartHunter.Game.Helpers
             public static class MonsterPartCollection
             {
                 public static readonly int MaxItemCount = 16;
-                public static readonly ulong HealthComponentPtr = 0x48;
                 public static readonly ulong FirstPart = 0x50;
             }
 
@@ -61,7 +68,7 @@ namespace SmartHunter.Game.Helpers
                 public static readonly ulong MaxHealth = 0x0C;
                 public static readonly ulong CurrentHealth = 0x10;
                 public static readonly ulong TimesBrokenCount = 0x18;
-                public static readonly ulong NextPart = 0x1E8;
+                public static readonly ulong NextPart = 0x1F8;//0x3F0;
             }
 
             public static class MonsterRemovablePartCollection
@@ -89,18 +96,17 @@ namespace SmartHunter.Game.Helpers
 
             public static class MonsterStatusEffect
             {
-                public static readonly ulong Id = 0x158;
-                public static readonly ulong MaxDuration = 0x15C;
-                public static readonly ulong CurrentBuildup = 0x178;
-                public static readonly ulong MaxBuildup = 0x17C;
-                public static readonly ulong CurrentDuration = 0x1A4;
-                public static readonly ulong TimesActivatedCount = 0x1A8;
+                public static readonly ulong MaxDuration = 0x19C;
+                public static readonly ulong CurrentBuildup = 0x1B8;
+                public static readonly ulong MaxBuildup = 0x1C8;
+                public static readonly ulong CurrentDuration = 0x1F8;
+                public static readonly ulong TimesActivatedCount = 0x200;
             }
 
             public static class PlayerNameCollection
             {
                 public static readonly int PlayerNameLength = 32 + 1; // +1 for null terminator
-                public static readonly ulong FirstPlayerName = 0x54A45;
+                public static readonly ulong FirstPlayerName = 0x532ED;//0x526AD;
             }
 
             public static class PlayerDamageCollection
@@ -123,11 +129,11 @@ namespace SmartHunter.Game.Helpers
                 var statusEffectConfig = ConfigHelper.PlayerData.Values.StatusEffects[index];
 
                 ulong sourceAddress = baseAddress;
-                if (statusEffectConfig.Source == Config.StatusEffectConfig.MemorySource.Equipment)
+                if (statusEffectConfig.Source == StatusEffectConfig.MemorySource.Equipment)
                 {
                     sourceAddress = equipmentAddress;
                 }
-                else if (statusEffectConfig.Source == Config.StatusEffectConfig.MemorySource.Weapon)
+                else if (statusEffectConfig.Source == StatusEffectConfig.MemorySource.Weapon)
                 {
                     sourceAddress = weaponAddress;
                 }
@@ -174,7 +180,7 @@ namespace SmartHunter.Game.Helpers
                         else if (condition.StringRegexValue != null)
                         {
                             var conditionValue = MemoryHelper.ReadString(process, conditionAddress, 64);
-                            isPassed = new Regex(condition.StringRegexValue, RegexOptions.CultureInvariant).IsMatch(conditionValue);
+                            isPassed = new Regex(condition.StringRegexValue).IsMatch(conditionValue);
                         }
 
                         if (!isPassed)
@@ -184,7 +190,6 @@ namespace SmartHunter.Game.Helpers
                         }
                     }
                 }
-
                 float? timer = null;
                 if (allConditionsPassed && statusEffectConfig.TimerOffset != null)
                 {
@@ -232,7 +237,7 @@ namespace SmartHunter.Game.Helpers
 
             var playerNameOffset = (ulong)DataOffsets.PlayerNameCollection.PlayerNameLength * (ulong)playerIndex;
             string name = MemoryHelper.ReadString(process, playerNameCollectionAddress + DataOffsets.PlayerNameCollection.FirstPlayerName + playerNameOffset, (uint)DataOffsets.PlayerNameCollection.PlayerNameLength);
-            ulong firstPlayerPtr = playerDamageCollectionAddress + DataOffsets.PlayerDamageCollection.FirstPlayerPtr;
+            ulong firstPlayerPtr = playerDamageCollectionAddress + DataOffsets.PlayerDamageCollection.FirstPlayerPtr; // check those lines
             ulong currentPlayerPtr = firstPlayerPtr + ((ulong)playerIndex * DataOffsets.PlayerDamageCollection.NextPlayerPtr);
             ulong currentPlayerAddress = MemoryHelper.Read<ulong>(process, currentPlayerPtr);
             int damage = MemoryHelper.Read<int>(process, currentPlayerAddress + DataOffsets.PlayerDamage.Damage);
@@ -245,9 +250,9 @@ namespace SmartHunter.Game.Helpers
             return player;
         }
 
-        public static void UpdateMonsterWidget(Process process, ulong lastMonsterAddress)
+        public static void UpdateMonsterWidget(Process process, ulong monsterBaseList)
         {
-            if (lastMonsterAddress < 0xffffff)
+            if (monsterBaseList < 0xffffff)
             {
                 OverlayViewModel.Instance.MonsterWidget.Context.Monsters.Clear();
                 return;
@@ -255,11 +260,20 @@ namespace SmartHunter.Game.Helpers
 
             List<ulong> monsterAddresses = new List<ulong>();
 
-            ulong currentMonsterAddress = lastMonsterAddress;
+            ulong firstMonster = MemoryHelper.Read<ulong>(process, monsterBaseList + DataOffsets.Monster.PreviousMonsterOffset);
+
+            if (firstMonster == 0x0)
+            {
+                firstMonster = monsterBaseList;// + DataOffsets.Monster.MonsterStartOfStructOffset;
+            }
+
+            firstMonster += DataOffsets.Monster.MonsterStartOfStructOffset;
+
+            ulong currentMonsterAddress = firstMonster;
             while (currentMonsterAddress != 0)
             {
                 monsterAddresses.Insert(0, currentMonsterAddress);
-                currentMonsterAddress = MemoryHelper.Read<ulong>(process, currentMonsterAddress + DataOffsets.Monster.PreviousMonsterPtr);
+                currentMonsterAddress = MemoryHelper.Read<ulong>(process, currentMonsterAddress + DataOffsets.Monster.NextMonsterOffset);
             }
 
             List<Monster> updatedMonsters = new List<Monster>();
@@ -284,8 +298,11 @@ namespace SmartHunter.Game.Helpers
         {
             Monster monster = null;
 
-            ulong modelPtr = MemoryHelper.Read<ulong>(process, monsterAddress + DataOffsets.Monster.ModelPtr);
-            string id = MemoryHelper.ReadString(process, modelPtr + DataOffsets.MonsterModel.Id, (uint)DataOffsets.MonsterModel.IdLength);
+            ulong tmp = monsterAddress + DataOffsets.Monster.MonsterStartOfStructOffset + DataOffsets.Monster.MonsterHealthComponentOffset;
+            ulong health_component = MemoryHelper.Read<ulong>(process, tmp);
+            
+            string id = MemoryHelper.ReadString(process, tmp + DataOffsets.MonsterModel.IdOffset, (uint)DataOffsets.MonsterModel.IdLength);
+            float maxHealth = MemoryHelper.Read<float>(process, health_component + DataOffsets.MonsterHealthComponent.MaxHealth);
 
             if (String.IsNullOrEmpty(id))
             {
@@ -298,21 +315,24 @@ namespace SmartHunter.Game.Helpers
                 return monster;
             }
 
-            ulong healthComponentAddress = MemoryHelper.Read<ulong>(process, monsterAddress + DataOffsets.Monster.PartCollection + DataOffsets.MonsterPartCollection.HealthComponentPtr);
-            float maxHealth = MemoryHelper.Read<float>(process, healthComponentAddress + DataOffsets.MonsterHealthComponent.MaxHealth);
             if (maxHealth <= 0)
             {
                 return monster;
             }
 
-            float currentHealth = MemoryHelper.Read<float>(process, healthComponentAddress + DataOffsets.MonsterHealthComponent.CurrentHealth);
-            float sizeScale = MemoryHelper.Read<float>(process, monsterAddress + DataOffsets.Monster.SizeScale);
+            float currentHealth = MemoryHelper.Read<float>(process, health_component + DataOffsets.MonsterHealthComponent.CurrentHealth);
+            float sizeScale = MemoryHelper.Read<float>(process, monsterAddress + DataOffsets.Monster.MonsterStartOfStructOffset + DataOffsets.Monster.SizeScale);
 
             monster = OverlayViewModel.Instance.MonsterWidget.Context.UpdateAndGetMonster(monsterAddress, id, maxHealth, currentHealth, sizeScale);
 
-            UpdateMonsterParts(process, monster);
-            UpdateMonsterRemovableParts(process, monster);
-            UpdateMonsterStatusEffects(process, monster);
+            
+            if (ConfigHelper.MonsterData.Values.Monsters.ContainsKey(id) && ConfigHelper.MonsterData.Values.Monsters[id].Parts.Count() > 0)
+            {
+                // TODO: I think here we can check if the current player is the host of the party, as if's not there's no point on updating monster parts (cause only the host of the party will see those parts)
+                UpdateMonsterParts(process, monster);
+                UpdateMonsterRemovableParts(process, monster);
+                UpdateMonsterStatusEffects(process, monster);
+            }
 
             return monster;
         }
@@ -338,14 +358,9 @@ namespace SmartHunter.Game.Helpers
 
                     float maxHealth = MemoryHelper.Read<float>(process, currentPartAddress + DataOffsets.MonsterPart.MaxHealth);
 
-                    // Read until we reach an element that has a max health of 0, which is presumably the end of the collection
                     if (maxHealth > 0)
                     {
                         UpdateMonsterPart(process, monster, currentPartAddress);
-                    }
-                    else
-                    {
-                        break;
                     }
                 }
             }
@@ -412,10 +427,6 @@ namespace SmartHunter.Game.Helpers
                         {
                             UpdateMonsterRemovablePart(process, monster, removablePartAddress);
                         }
-                        else
-                        {
-                            break;
-                        }
                     }
 
                     removablePartAddress += DataOffsets.MonsterRemovablePart.NextRemovablePart;
@@ -434,58 +445,104 @@ namespace SmartHunter.Game.Helpers
 
         private static void UpdateMonsterStatusEffects(Process process, Monster monster)
         {
-            ulong statusEffectCollectionAddress = monster.Address + DataOffsets.Monster.StatusEffectCollection;
-
-            for (int index = 0; index < ConfigHelper.MonsterData.Values.StatusEffects.Length; ++index)
+            int maxIndex = ConfigHelper.MonsterData.Values.StatusEffects.Where(s => s.GroupId.Equals("StatusEffect")).Count() - 1;
+            var statuses = monster.StatusEffects;
+            if (statuses.Where(s => s.GroupId.Equals("StatusEffect")).Any())
             {
-                var statusEffectConfig = ConfigHelper.MonsterData.Values.StatusEffects[index];
-
-                var rootAddress = statusEffectCollectionAddress;
-
-                if (statusEffectConfig.PointerOffset != null)
+                for (int i = 0; i < statuses.Count(); i++)
                 {
-                    if (TryParseHex(statusEffectConfig.PointerOffset, out var pointerOffset))
-                    {
-                        rootAddress = MemoryHelper.ReadMultiLevelPointer(false, process, (ulong)((long)rootAddress + pointerOffset), 0);
-                    }
-                }
-                
-                float maxBuildup = 0;
-                float currentBuildup = 0;
-                if (TryParseHex(statusEffectConfig.CurrentBuildupOffset, out var currentBuildupOffset)
-                    && TryParseHex(statusEffectConfig.MaxBuildupOffset, out var maxBuildupOffset)
-                    )
-                {
-                    maxBuildup = MemoryHelper.Read<float>(process, AddOffset(rootAddress, maxBuildupOffset));
+                    MonsterStatusEffect status = statuses[i];
+                    float currentBuildup = 0;
+                    float maxBuildup = MemoryHelper.Read<float>(process, status.Address + DataOffsets.MonsterStatusEffect.MaxBuildup);
                     if (maxBuildup > 0)
                     {
-                        currentBuildup = MemoryHelper.Read<float>(process, AddOffset(rootAddress, currentBuildupOffset));
+                        currentBuildup = MemoryHelper.Read<float>(process, status.Address + DataOffsets.MonsterStatusEffect.CurrentBuildup);
                     }
-                }
-
-                float maxDuration = 0;
-                float currentDuration = 0;
-                if (TryParseHex(statusEffectConfig.MaxDurationOffset, out var maxDurationOffset)
-                   && TryParseHex(statusEffectConfig.CurrentDurationOffset, out var currentDurationOffset)
-                   )
-                {
-                    maxDuration = MemoryHelper.Read<float>(process, AddOffset(rootAddress, maxDurationOffset));
+                    float currentDuration = 0;
+                    float maxDuration = MemoryHelper.Read<float>(process, status.Address + DataOffsets.MonsterStatusEffect.MaxDuration);
                     if (maxDuration > 0)
                     {
-                        currentDuration = MemoryHelper.Read<float>(process, AddOffset(rootAddress, currentDurationOffset));
+                        currentDuration = MemoryHelper.Read<float>(process, status.Address + DataOffsets.MonsterStatusEffect.CurrentDuration);
+                    }
+                    int timesActivatedCount = MemoryHelper.Read<int>(process, status.Address + DataOffsets.MonsterStatusEffect.TimesActivatedCount);
+
+                    if (maxBuildup > 0 || maxDuration > 0)
+                    {
+                        uint index = MemoryHelper.Read<uint>(process, status.Address + 0x198);
+                        if (index <= maxIndex)
+                        {
+                            var statusEffectConfig = ConfigHelper.MonsterData.Values.StatusEffects[index];
+                            monster.UpdateAndGetStatusEffect(status.Address, (int)index, maxBuildup > 0 ? maxBuildup : 1, !statusEffectConfig.InvertBuildup ? currentBuildup : maxBuildup - currentBuildup, maxDuration, !statusEffectConfig.InvertDuration ? currentDuration : maxDuration - currentDuration, timesActivatedCount);
+                        }
                     }
                 }
-
-                int timesActivatedCount = 0;
-                if (TryParseHex(statusEffectConfig.TimesActivatedOffset, out var timesActivatedOffset))
+            }
+            else
+            {
+                ulong baseStatus = MemoryHelper.Read<ulong>(process, monster.Address + DataOffsets.Monster.MonsterStartOfStructOffset + 0x78);
+                baseStatus = MemoryHelper.Read<ulong>(process, baseStatus + 0x57A8);
+                ulong nani = baseStatus;
+                while (nani != 0)
                 {
-                    timesActivatedCount = MemoryHelper.Read<int>(process, AddOffset(rootAddress, timesActivatedOffset));
+                    nani = MemoryHelper.Read<ulong>(process, nani + 0x10);
+                    if (nani != 0)
+                    {
+                        baseStatus = nani;
+                    }
                 }
-
-                if (maxBuildup > 0 || maxDuration > 0)
+                ulong currentStatusPointer = baseStatus + 0x40;
+                while (currentStatusPointer != 0x0)
                 {
-                    monster.UpdateAndGetStatusEffect(index, maxBuildup > 0 ? maxBuildup : 1, !statusEffectConfig.InvertBuildup ? currentBuildup : maxBuildup - currentBuildup, maxDuration, !statusEffectConfig.InvertDuration ? currentDuration : maxDuration - currentDuration, timesActivatedCount);
+                    var currentMonsterInStatus = MemoryHelper.Read<ulong>(process, currentStatusPointer + 0x188);
+                    if (currentMonsterInStatus == monster.Address + 0x40 && !monster.StatusEffects.Where(status => status.Address == currentStatusPointer).Any())
+                    {
+                        float currentBuildup = 0;
+                        float maxBuildup = MemoryHelper.Read<float>(process, currentStatusPointer + DataOffsets.MonsterStatusEffect.MaxBuildup);
+                        if (maxBuildup > 0)
+                        {
+                            currentBuildup = MemoryHelper.Read<float>(process, currentStatusPointer + DataOffsets.MonsterStatusEffect.CurrentBuildup);
+                        }
+                        float currentDuration = 0;
+                        float maxDuration = MemoryHelper.Read<float>(process, currentStatusPointer + DataOffsets.MonsterStatusEffect.MaxDuration);
+                        if (maxDuration > 0)
+                        {
+                            currentDuration = MemoryHelper.Read<float>(process, currentStatusPointer + DataOffsets.MonsterStatusEffect.CurrentDuration);
+                        }
+                        int timesActivatedCount = MemoryHelper.Read<int>(process, currentStatusPointer + DataOffsets.MonsterStatusEffect.TimesActivatedCount);
+
+                        if (maxBuildup > 0 || maxDuration > 0)
+                        {
+                            uint index = MemoryHelper.Read<uint>(process, currentStatusPointer + 0x198);
+                            if (index <= maxIndex && !((index == 14 || index == 15) && monster.isElder)) // skip traps for elders
+                            {
+                                var statusEffectConfig = ConfigHelper.MonsterData.Values.StatusEffects[index];
+                                monster.UpdateAndGetStatusEffect(currentStatusPointer, (int)index, maxBuildup > 0 ? maxBuildup : 1, !statusEffectConfig.InvertBuildup ? currentBuildup : maxBuildup - currentBuildup, maxDuration, !statusEffectConfig.InvertDuration ? currentDuration : maxDuration - currentDuration, timesActivatedCount);
+                            }
+                        }
+                    }
+                    currentStatusPointer = MemoryHelper.Read<ulong>(process, currentStatusPointer + 0x18);
                 }
+            }
+
+            // Rage
+            ulong rageAddress = monster.Address + 0x1BE30; //0x1BE20
+            float maxRageBuildUp = MemoryHelper.Read<float>(process, rageAddress + 0x24);
+            float currentRageBuildUp = 0;
+            if (maxRageBuildUp > 0)
+            {
+                currentRageBuildUp = MemoryHelper.Read<float>(process, rageAddress);
+            }
+            float maxRageDuration = MemoryHelper.Read<float>(process, rageAddress + 0x10);
+            float currentRageDuration = 0;
+            if (maxRageDuration > 0)
+            {
+                currentRageDuration = MemoryHelper.Read<float>(process, rageAddress + 0xC);
+            }
+            int rageActivatedCount = MemoryHelper.Read<int>(process, rageAddress + 0x1C);
+            var rageStatusEffect = ConfigHelper.MonsterData.Values.StatusEffects.SingleOrDefault(s => s.GroupId.Equals("Rage"));//[33]; // 33 is rage
+            if (maxRageBuildUp > 0 || maxRageDuration > 0)
+            {
+                monster.UpdateAndGetStatusEffect(rageAddress, Array.IndexOf(ConfigHelper.MonsterData.Values.StatusEffects, rageStatusEffect), maxRageBuildUp > 0 ? maxRageBuildUp : 1, !rageStatusEffect.InvertBuildup ? currentRageBuildUp : maxRageBuildUp - currentRageBuildUp, maxRageDuration, !rageStatusEffect.InvertDuration ? currentRageDuration : maxRageDuration - currentRageDuration, rageActivatedCount);
             }
         }
     }

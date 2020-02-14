@@ -1,8 +1,8 @@
-﻿using SmartHunter.Core.Data;
-using SmartHunter.Game.Helpers;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using SmartHunter.Core.Data;
+using SmartHunter.Game.Helpers;
 
 namespace SmartHunter.Game.Data.WidgetContexts
 {
@@ -42,10 +42,14 @@ namespace SmartHunter.Game.Data.WidgetContexts
         {
             if (String.IsNullOrEmpty(name) && damage == 0)
             {
+                if (index < Players.Count)
+                {
+                    Players.RemoveAt(index);
+                }
                 return null;
             }
             
-            while (index >= Players.Count)
+            while (index >= Players.Count) // why while?
             {
                 Players.Add(new Player() { Index = Players.Count, Name = LocalizationHelper.GetString(LocalizationHelper.UnknownPlayerStringId) });
             }

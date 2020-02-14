@@ -1,9 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
+using SmartHunter.Core.Helpers;
+using SmartHunter.Game.Helpers;
 
 namespace SmartHunter.Core
 {
@@ -12,6 +16,9 @@ namespace SmartHunter.Core
         enum State
         {
             None,
+            CheckingForUpdates,
+            DownloadingUpdates,
+            Restarting,
             WaitingForProcess,
             ProcessFound,
             PatternScanning,
@@ -26,7 +33,7 @@ namespace SmartHunter.Core
         protected abstract string ProcessName { get; }
         protected abstract BytePattern[] Patterns { get; }
 
-        protected virtual int ThreadsPerScan { get { return 1; } }
+        protected virtual int ThreadsPerScan { get { return 2; } }
         protected virtual int UpdatesPerSecond { get { return 20; } }
         protected virtual bool ShutdownWhenProcessExits { get { return false; } }
 
@@ -46,6 +53,8 @@ namespace SmartHunter.Core
 
         void CreateStateMachine()
         {
+            var updater = new Updater();
+
             m_StateMachine = new StateMachine<State>();
 
             m_StateMachine.Add(State.None, new StateMachine<State>.StateData(
@@ -53,13 +62,83 @@ namespace SmartHunter.Core
                 new StateMachine<State>.Transition[]
                 {
                     new StateMachine<State>.Transition(
+                        State.CheckingForUpdates,
+                        () => ConfigHelper.Main.Values.AutomaticallyCheckAndDownloadUpdates,
+                        () =>
+                        {
+                            Log.WriteLine("Searching for updates (You can disable this feature in file 'Config.json')!");
+                        }),
+                    new StateMachine<State>.Transition(
                         State.WaitingForProcess,
-                        () => true,
+                        () => !ConfigHelper.Main.Values.AutomaticallyCheckAndDownloadUpdates,
                         () =>
                         {
                             Initialize();
                         })
                 }));
+
+            m_StateMachine.Add(State.CheckingForUpdates, new StateMachine<State>.StateData(
+                null,
+                new StateMachine<State>.Transition[]
+                {
+                    new StateMachine<State>.Transition(
+                        State.WaitingForProcess,
+                        () => !updater.CheckForUpdates(),
+                        () =>
+                        {
+                            Initialize();
+                        }),
+                    new StateMachine<State>.Transition(
+                        State.DownloadingUpdates,
+                        () => updater.CheckForUpdates(),
+                        () =>
+                        {
+                            Log.WriteLine("Starting to download Updates!");
+                        })
+                }));
+
+            m_StateMachine.Add(State.DownloadingUpdates, new StateMachine<State>.StateData(
+                null,
+                new StateMachine<State>.Transition[]
+                {
+                    new StateMachine<State>.Transition(
+                        State.Restarting,
+                        () => updater.DownloadUpdates(),
+                        () =>
+                        {
+                            Log.WriteLine("Successfully downloaded all files!");
+                        }),
+                    new StateMachine<State>.Transition(
+                        State.WaitingForProcess,
+                        () => !updater.DownloadUpdates(),
+                        () =>
+                        {
+                            Log.WriteLine("Failed to download Updates... Resuming the normal flow of the application!");
+                            Initialize();
+                        })
+                }));
+
+            m_StateMachine.Add(State.Restarting, new StateMachine<State>.StateData(
+               null,
+               new StateMachine<State>.Transition[]
+               {
+                    new StateMachine<State>.Transition(
+                        State.Restarting,
+                        () => true,
+                        () =>
+                        {
+                            Log.WriteLine("Restarting Application!");
+                            string update = ".\\SmartHunter_NEW.exe";
+                            string exec = Assembly.GetEntryAssembly()?.Location;
+                            if (File.Exists(update) && exec != null && File.Exists(exec))
+                            {
+                                File.Move(exec, "SmartHunter_OLD.exe");
+                                File.Move(update, "SmartHunter.exe");
+                                Process.Start("SmartHunter.exe");
+                            }
+                            Environment.Exit(1);
+                        })
+               }));
 
             m_StateMachine.Add(State.WaitingForProcess, new StateMachine<State>.StateData(
                 null,
@@ -69,19 +148,25 @@ namespace SmartHunter.Core
                         State.ProcessFound,
                         () =>
                         {
-                            var process = Process.GetProcessesByName(ProcessName).FirstOrDefault();
-                            if (process != null && !process.HasExited)
+                            var processes = Process.GetProcesses();
+                            foreach (var p in processes)
                             {
-                                Process = process;
-                                return true;
+                                try
+                                {
+                                    if (p != null && p.ProcessName.Equals(ProcessName) && !p.HasExited)
+                                    {
+                                        Process = p;
+                                        return true;
+                                    }
+                                }
+                                catch
+                                {
+                                    // nothing here
+                                }
                             }
-
                             return false;
                         },
-                        () =>
-                        {
-                            Log.WriteLine($"Attached to {Process.MainWindowTitle}");
-                        })
+                        null)
                 }));
 
             m_StateMachine.Add(State.ProcessFound, new StateMachine<State>.StateData(
@@ -109,11 +194,26 @@ namespace SmartHunter.Core
                         State.Working,
                         () =>
                         {
-                            var finishedWithResults = m_MemoryScans.Where(memoryScan => memoryScan.HasCompleted && memoryScan.Results.SelectMany(result => result.Matches).Any());
-                            return finishedWithResults.Count() == m_MemoryScans.Count;
+                            var completedScans = m_MemoryScans.Where(memoryScan => memoryScan.HasCompleted);
+                            if (completedScans.Count() == m_MemoryScans.Count())
+                            {
+                                var finishedWithResults = m_MemoryScans.Where(memoryScan => memoryScan.HasCompleted && memoryScan.Results.SelectMany(result => result.Matches).Any());
+                                return finishedWithResults.Any();
+                            }
+
+                            return false;
                         },
                         () =>
                         {
+                            var failedMemoryScans = m_MemoryScans.Where(memoryScan => !memoryScan.Results.SelectMany(result => result.Matches).Any());
+                            if (failedMemoryScans.Any())
+                            {
+                                string failedPatterns = String.Join(" ", failedMemoryScans.Select(failedMemoryScan => failedMemoryScan.Pattern.Config.Name));
+                                Log.WriteLine($"Failed Patterns [{failedMemoryScans.Count()}/{m_MemoryScans.Count()}]: {failedPatterns}");
+                                Log.WriteLine($"The application will continue to work but with limited functionalities...");
+                                m_MemoryScans.RemoveAll(scan => failedMemoryScans.Contains(scan));
+                            }
+
                             var orderedMatches = m_MemoryScans.Select(memoryScan => memoryScan.Results.Where(result => result.Matches.Any()).First().Matches.First()).OrderBy(match => match);
                             Log.WriteLine($"Match Range: {orderedMatches.First():X} - {orderedMatches.Last():X}");
                         }),
@@ -122,19 +222,17 @@ namespace SmartHunter.Core
                         () =>
                         {
                             var completedScans = m_MemoryScans.Where(memoryScan => memoryScan.HasCompleted);
-                            if (completedScans.Count() == m_MemoryScans.Count)
+                            if (completedScans.Count() == m_MemoryScans.Count())
                             {
                                 var finishedWithoutResults = m_MemoryScans.Where(memoryScan => !memoryScan.Results.SelectMany(result => result.Matches).Any());
-                                return finishedWithoutResults.Any();
+                                return finishedWithoutResults.Count() == m_MemoryScans.Count();
                             }
 
                             return false;
                         },
                         () =>
                         {
-                            var failedMemoryScans = m_MemoryScans.Where(memoryScan => !memoryScan.Results.SelectMany(result => result.Matches).Any());
-                            string failedPatterns = String.Join("\r\n", failedMemoryScans.Select(failedMemoryScan => failedMemoryScan.Pattern.Config.String));
-                            Log.WriteLine($"Failed Patterns:\r\n{failedPatterns}");
+                            Log.WriteLine($"All pattern failed... Aborting!");
                         }),
                     new StateMachine<State>.Transition(
                         State.WaitingForProcess,

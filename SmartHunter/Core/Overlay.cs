@@ -1,8 +1,8 @@
-﻿using SmartHunter.Core.Helpers;
-using SmartHunter.Core.Windows;
-using System;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using SmartHunter.Core.Helpers;
+using SmartHunter.Core.Windows;
 
 namespace SmartHunter.Core
 {
@@ -12,8 +12,6 @@ namespace SmartHunter.Core
 
         Window m_MainWindow;
         protected WidgetWindow[] WidgetWindows { get; private set; }
-
-        protected virtual bool ShowWindows { get { return false; } }
 
         public Overlay(Window mainWindow, params WidgetWindow[] widgetWindows)
         {
@@ -34,7 +32,7 @@ namespace SmartHunter.Core
             UpdateWidgetsFromConfig();
         }
 
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
             foreach (var widgetWindow in WidgetWindows)
             {
@@ -50,10 +48,7 @@ namespace SmartHunter.Core
                 widgetWindow.Show();
                 widgetWindow.Owner = null;
 
-                if (!ShowWindows)
-                {
-                    WindowHelper.SetTopMostTransparent(widgetWindow);
-                }
+                WindowHelper.SetTopMostTransparent(widgetWindow);
             }
             else
             {
@@ -63,29 +58,8 @@ namespace SmartHunter.Core
 
         public void UpdateWidgetsFromConfig()
         {
-            for (int index = 0; index < WidgetWindows.Length; ++index)
+            foreach (var widgetWindow in WidgetWindows)
             {
-                var widgetWindow = WidgetWindows[index];
-
-                // Recreate the window using the appropriate settings if the ShowWindows option is toggled
-                bool shouldChangeWindowState = (ShowWindows && widgetWindow.IsConfiguredForLayered) || (!ShowWindows && !widgetWindow.IsConfiguredForLayered);
-                if (shouldChangeWindowState)
-                {
-                    widgetWindow.Close();
-
-                    widgetWindow = Activator.CreateInstance(widgetWindow.GetType(), false) as WidgetWindow;
-                    WidgetWindows[index] = widgetWindow;
-
-                    if (ShowWindows)
-                    {
-                        widgetWindow.ConfigureForSolid();
-                    }
-                    else
-                    {
-                        widgetWindow.ConfigureForLayered();
-                    }
-                }
-
                 widgetWindow.Widget.UpdateFromConfig();
 
                 if ((widgetWindow.Widget.IsVisible && widgetWindow.Visibility != Visibility.Visible) ||

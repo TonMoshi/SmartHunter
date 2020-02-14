@@ -1,10 +1,10 @@
-﻿using SmartHunter.Core;
-using SmartHunter.Core.Data;
-using SmartHunter.Game.Config;
-using SmartHunter.Game.Helpers;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using SmartHunter.Core;
+using SmartHunter.Core.Data;
+using SmartHunter.Game.Config;
+using SmartHunter.Game.Helpers;
 
 namespace SmartHunter.Game.Data
 {
@@ -31,6 +31,22 @@ namespace SmartHunter.Game.Data
                     NotifyPropertyChanged(nameof(IsVisible));
                     UpdateLocalization();
                 }
+            }
+        }
+
+        public bool isElder
+        {
+            get
+            {
+                bool elder = false;
+
+                MonsterConfig config = null;
+                if (ConfigHelper.MonsterData.Values.Monsters.TryGetValue(Id, out config))
+                {
+                    elder = config.isElder;
+                }
+
+                return elder;
             }
         }
 
@@ -98,22 +114,21 @@ namespace SmartHunter.Game.Data
                 MonsterConfig config = null;
                 if (ConfigHelper.MonsterData.Values.Monsters.TryGetValue(Id, out config) && config.Crowns != null)
                 {
-                    int modifiedSizeScale = (int)Math.Round(ModifiedSizeScale * 100, 0);
+                    float modifiedSizeScale = ModifiedSizeScale;
 
-                    if (modifiedSizeScale <= (int)Math.Round(config.Crowns.Mini * 100, 0))
+                    if (modifiedSizeScale <= config.Crowns.Mini)
                     {
                         crown = MonsterCrown.Mini;
                     }
-                    else if (modifiedSizeScale >= (int)Math.Round(config.Crowns.Gold * 100, 0))
+                    else if (modifiedSizeScale >= config.Crowns.Gold)
                     {
                         crown = MonsterCrown.Gold;
                     }
-                    else if (modifiedSizeScale >= (int)Math.Round(config.Crowns.Silver * 100, 0))
+                    else if (modifiedSizeScale >= config.Crowns.Silver)
                     {
                         crown = MonsterCrown.Silver;
                     }
                 }
-
                 return crown;
             }
         }
@@ -164,11 +179,13 @@ namespace SmartHunter.Game.Data
             return part;
         }
 
-        public MonsterStatusEffect UpdateAndGetStatusEffect(int index, float maxBuildup, float currentBuildup, float maxDuration, float currentDuration, int timesActivatedCount)
+        public MonsterStatusEffect UpdateAndGetStatusEffect(ulong address, int index, float maxBuildup, float currentBuildup, float maxDuration, float currentDuration, int timesActivatedCount)
         {
-            MonsterStatusEffect statusEffect = StatusEffects.SingleOrDefault(collectionStatusEffect => collectionStatusEffect.Index == index);
+            MonsterStatusEffect statusEffect = StatusEffects.SingleOrDefault(collectionStatusEffect => collectionStatusEffect.Index == index); // TODO: check address???
+            
             if (statusEffect != null)
             {
+                //statusEffect.Address = Address;
                 statusEffect.Duration.Max = maxDuration;
                 statusEffect.Duration.Current = currentDuration;
                 statusEffect.Buildup.Max = maxBuildup;
@@ -177,7 +194,7 @@ namespace SmartHunter.Game.Data
             }
             else
             {
-                statusEffect = new MonsterStatusEffect(this, index, maxBuildup, currentBuildup, maxDuration, currentDuration, timesActivatedCount);
+                statusEffect = new MonsterStatusEffect(this, address, index, maxBuildup, currentBuildup, maxDuration, currentDuration, timesActivatedCount);
                 statusEffect.Changed += PartOrStatusEffect_Changed;
 
                 StatusEffects.Add(statusEffect);
@@ -204,7 +221,7 @@ namespace SmartHunter.Game.Data
 
         public static bool IsIncluded(string monsterId)
         {
-            return ConfigHelper.Main.Values.Overlay.MonsterWidget.MatchMonsterId(monsterId);
+            return ConfigHelper.Main.Values.Overlay.MonsterWidget.MatchIncludeMonsterIdRegex(monsterId);
         }
 
         private void PartOrStatusEffect_Changed(object sender, GenericEventArgs<DateTimeOffset> e)

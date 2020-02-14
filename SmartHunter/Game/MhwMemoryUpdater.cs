@@ -1,8 +1,8 @@
-﻿using SmartHunter.Core;
+using System.Linq;
+using SmartHunter.Core;
 using SmartHunter.Core.Helpers;
 using SmartHunter.Game.Data.ViewModels;
 using SmartHunter.Game.Helpers;
-using System.Linq;
 
 namespace SmartHunter.Game
 {
@@ -11,7 +11,6 @@ namespace SmartHunter.Game
         BytePattern m_PlayerDamagePattern = new BytePattern(ConfigHelper.Memory.Values.PlayerDamagePattern);
         BytePattern m_PlayerNamePattern = new BytePattern(ConfigHelper.Memory.Values.PlayerNamePattern);
         BytePattern m_MonsterPattern = new BytePattern(ConfigHelper.Memory.Values.MonsterPattern);
-        BytePattern m_MonsterOffsetPattern = new BytePattern(ConfigHelper.Memory.Values.MonsterOffsetPattern);
         BytePattern m_PlayerBuffPattern = new BytePattern(ConfigHelper.Memory.Values.PlayerBuffPattern);
 
         protected override string ProcessName
@@ -39,7 +38,6 @@ namespace SmartHunter.Game
                     m_PlayerDamagePattern,
                     m_PlayerNamePattern,
                     m_MonsterPattern,
-                    m_MonsterOffsetPattern,
                     m_PlayerBuffPattern
                 };
             }
@@ -72,24 +70,49 @@ namespace SmartHunter.Game
 
             bool traceUniquePointers = ConfigHelper.Main.Values.Debug.TraceUniquePointers;
 
-            if (ConfigHelper.Main.Values.Overlay.MonsterWidget.IsVisible)
+            if (ConfigHelper.Main.Values.Overlay.MonsterWidget.IsVisible && m_MonsterPattern.MatchedAddresses.Any())
             {
-                var monsterRootPtr = MemoryHelper.LoadEffectiveAddressRelative(Process, m_MonsterPattern.MatchedAddresses.First());
-                var monsterOffset = MemoryHelper.ReadStaticOffset(Process, m_MonsterOffsetPattern.MatchedAddresses.First());
-                var lastMonsterAddress = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, monsterRootPtr, monsterOffset, 0x8F9BC * 8, 0, 0);
+                /*
+                var range = new AddressRange(0x140000000, 0x163B0A000);
+                //var pattern = new BytePattern(new Config.BytePatternConfig("48 8B 05 ?? ?? ?? ?? 41 8B", "140000000", "163B0A000", null));
 
-                MhwHelper.UpdateMonsterWidget(Process, lastMonsterAddress);
+                var pattern = new BytePattern(new Config.BytePatternConfig("null", "48 8B 05 ?? ?? ?? ?? 41 8B", "140000000", "163B0A000", null));
+                var matches = MemoryHelper.FindPatternAddresses(Process, range, pattern, false);
+
+                //Log.WriteLine($"Found {matches.Count()} matches...");
+
+                ulong[] lookingFor = new ulong[1] { 0x144F03280 };
+
+                var res = new System.Collections.Generic.List<ulong>();
+
+                foreach (ulong address in matches)
+                {
+                    ulong lear = MemoryHelper.LoadEffectiveAddressRelative(Process, address);
+                    foreach (ulong looking in lookingFor)
+                    {
+                        if (looking == lear)
+                        {
+                            res.Add(address);
+                            //Log.WriteLine($"Found match for 0x{looking} at 0x{address}");
+                        }
+                    }
+                }
+                */
+                var monsterRootPtr = MemoryHelper.LoadEffectiveAddressRelative(Process, m_MonsterPattern.MatchedAddresses.First()) - 0x36CE0; // yeah i know this is basically a static pointer
+                var monsterBaseList = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, monsterRootPtr, 0x128, 0x8, 0x0);
+
+                MhwHelper.UpdateMonsterWidget(Process, monsterBaseList);
             }
             else if (OverlayViewModel.Instance.MonsterWidget.Context.Monsters.Any())
             {
                 OverlayViewModel.Instance.MonsterWidget.Context.Monsters.Clear();
             }
 
-            if (ConfigHelper.Main.Values.Overlay.TeamWidget.IsVisible)
+            if (ConfigHelper.Main.Values.Overlay.TeamWidget.IsVisible && m_PlayerDamagePattern.MatchedAddresses.Any())
             {
                 ulong playerNamesPtr = MemoryHelper.LoadEffectiveAddressRelative(Process, m_PlayerNamePattern.MatchedAddresses.First());
                 var playerDamageRootPtr = MemoryHelper.LoadEffectiveAddressRelative(Process, m_PlayerDamagePattern.MatchedAddresses.First());
-                var playerDamageCollectionAddress = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, playerDamageRootPtr, 0x48 + 0x20 * 0x58);
+                var playerDamageCollectionAddress = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, playerDamageRootPtr, (long)MhwHelper.DataOffsets.PlayerDamageCollection.FirstPlayerPtr + (long)MhwHelper.DataOffsets.PlayerDamageCollection.MaxPlayerCount * sizeof(long) * (long)MhwHelper.DataOffsets.PlayerDamageCollection.NextPlayerPtr);
                 var playerNamesAddress = MemoryHelper.Read<uint>(Process, playerNamesPtr);
 
                 MhwHelper.UpdateTeamWidget(Process, playerDamageCollectionAddress, playerNamesAddress);
@@ -99,36 +122,19 @@ namespace SmartHunter.Game
                 OverlayViewModel.Instance.TeamWidget.Context.Players.Clear();
             }
 
-            if (ConfigHelper.Main.Values.Overlay.PlayerWidget.IsVisible)
+            if (ConfigHelper.Main.Values.Overlay.PlayerWidget.IsVisible && m_PlayerBuffPattern.MatchedAddresses.Any())
             {
                 var playerBuffRootPtr = MemoryHelper.LoadEffectiveAddressRelative(Process, m_PlayerBuffPattern.MatchedAddresses.First());
 
-                // The local player is guaranteed to be the last item in the list,
-                // So, keep reading each pointer in the collection until we reach null
-                var buffPtr = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, playerBuffRootPtr, 0X9B0 + 0XC8, 0);
-                ulong lastBuffAddress = 0;
-                ulong currentBuffAddress = MemoryHelper.Read<ulong>(Process, buffPtr);
-                while (currentBuffAddress != 0)
-                {
-                    lastBuffAddress = currentBuffAddress;
-                    buffPtr += 8;
-                    currentBuffAddress = MemoryHelper.Read<ulong>(Process, buffPtr);
-                }
+                var buffPtr = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, playerBuffRootPtr, 0x8C8, 0x1C0, 0x0);
 
-                var buffAddress = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, lastBuffAddress + 0x79D0, 0);
-                var equipmentAddress = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, buffAddress + 0x8, 0x70, 0x78, 0x50, -0x10);
-                var weaponAddress = MemoryHelper.ReadMultiLevelPointer(traceUniquePointers, Process, buffAddress + 0x10, 0x8, 0x78, 0x48, 0x0);
+                ulong lastBuffAddress = MemoryHelper.Read<ulong>(Process, buffPtr - 0x38) + 0x80;
 
-                var isBuffAddressValid = MemoryHelper.Read<float>(Process, equipmentAddress + 0x20) != 0;
-                var isEquipmentAddressValid = MemoryHelper.Read<ulong>(Process, equipmentAddress + 0x8) == 0;
-                if (isBuffAddressValid && isEquipmentAddressValid)
-                {
-                    MhwHelper.UpdatePlayerWidget(Process, buffAddress, equipmentAddress, weaponAddress);
-                }
-                else if (OverlayViewModel.Instance.PlayerWidget.Context.StatusEffects.Any())
-                {
-                    OverlayViewModel.Instance.PlayerWidget.Context.StatusEffects.Clear();
-                }
+                ulong equipmentAddress = MemoryHelper.Read<ulong>(Process, lastBuffAddress + 0x14F8);
+                ulong weaponAddress = MemoryHelper.Read<ulong>(Process, lastBuffAddress + 0x76B0);
+                ulong buffAddress = MemoryHelper.Read<ulong>(Process, lastBuffAddress + 0x7D20);
+
+                MhwHelper.UpdatePlayerWidget(Process, buffAddress, equipmentAddress, weaponAddress);
             }
             else if (OverlayViewModel.Instance.PlayerWidget.Context.StatusEffects.Any())
             {

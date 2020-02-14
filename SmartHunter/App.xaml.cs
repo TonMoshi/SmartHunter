@@ -1,13 +1,15 @@
-﻿using SmartHunter.Core;
+﻿using System;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Windows;
+using System.Xaml;
+using SmartHunter.Core;
 using SmartHunter.Game;
 using SmartHunter.Game.Data.ViewModels;
 using SmartHunter.Game.Helpers;
 using SmartHunter.Ui.Windows;
-using System;
-using System.IO;
-using System.Reflection;
-using System.Windows;
-using System.Xaml;
+using XamlReader = System.Windows.Markup.XamlReader;
 
 namespace SmartHunter
 {
@@ -38,6 +40,22 @@ namespace SmartHunter
             m_SkinFile = new FileContainer(ConfigHelper.Main.Values.SkinFileName);
             m_SkinFile.Changed += (s1, e1) => { LoadSkin(); };
             LoadSkin();
+
+            try
+            {
+                string[] files = Directory.GetFiles(".");
+                foreach (string file in files)
+                {
+                    if (Path.GetExtension(file).Equals(".exe") && file.Contains("SmartHunter_"))
+                    {
+                        File.Delete(file);
+                    }
+                }
+            }
+            catch
+            {
+                
+            }
 
             m_Overlay = new MhwOverlay(new ConsoleWindow(), new TeamWidgetWindow(), new MonsterWidgetWindow(), new PlayerWidgetWindow());
 
@@ -78,16 +96,16 @@ namespace SmartHunter
             {
                 ResourceDictionary resourceDictionary = null;
 
-                using (var streamReader = new StreamReader(m_SkinFile.FullPathFileName, System.Text.Encoding.UTF8))
+                using (var streamReader = new StreamReader(m_SkinFile.FullPathFileName, Encoding.UTF8))
                 {
                     var xmlReaderSettings = new XamlXmlReaderSettings
                     {
                         LocalAssembly = Assembly.GetExecutingAssembly()
                     };
 
-                    using (var xamlReader = new XamlXmlReader(streamReader.BaseStream, System.Windows.Markup.XamlReader.GetWpfSchemaContext(), xmlReaderSettings))
+                    using (var xamlReader = new XamlXmlReader(streamReader.BaseStream, XamlReader.GetWpfSchemaContext(), xmlReaderSettings))
                     {
-                        resourceDictionary = System.Windows.Markup.XamlReader.Load(xamlReader) as ResourceDictionary;
+                        resourceDictionary = XamlReader.Load(xamlReader) as ResourceDictionary;
                     }
                 }
 

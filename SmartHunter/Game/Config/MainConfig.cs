@@ -1,11 +1,12 @@
-﻿using SmartHunter.Core.Config;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Windows.Input;
+using SmartHunter.Core.Config;
 
 namespace SmartHunter.Game.Config
 {
     public class MainConfig
     {
+        public string VersionsFileName = "Versions.json";
         public string LocalizationFileName = "en-US.json";
         public string SkinFileName = "Default.xaml";
         public string MonsterDataFileName = "MonsterData.json";
@@ -13,6 +14,7 @@ namespace SmartHunter.Game.Config
         public string MemoryFileName = "Memory.json";
 
         public bool ShutdownWhenProcessExits = false;
+        public bool AutomaticallyCheckAndDownloadUpdates = true; // TODO: Rimetti a true
 
         public OverlayConfig Overlay = new OverlayConfig();
 

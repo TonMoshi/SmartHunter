@@ -1,5 +1,5 @@
-﻿using SmartHunter.Core.Config;
 using System.Collections.Generic;
+using SmartHunter.Core.Config;
 
 namespace SmartHunter.Config
 {
@@ -13,7 +13,39 @@ namespace SmartHunter.Config
             { "LOC_WIDGET_TEAM", "Team Widget" },
             { "LOC_WIDGET_PLAYER", "Player Widget" },
 
-            { "LOC_MONSTER_UKNOWN", "Unknown Monster" },
+            // Iceborne monsters
+
+            { "LOC_MONSTER_NARGACUGA", "Nargacuga" },
+            { "LOC_MONSTER_NAMIELLE", "Namielle" },
+            { "LOC_MONSTER_SHARA_ISHVALDA", "Shara Ishvalda" },
+            { "LOC_MONSTER_BANBARO", "Banbaro" },
+            { "LOC_MONSTER_TIGREX", "Tigrex" },
+            { "LOC_MONSTER_BRUTE_TIGREX", "Brute Tigrex" },
+            { "LOC_MONSTER_ZINOGRE", "Zinogre" },
+            { "LOC_MONSTER_PAOLUMU_NIGHTSHADE", "Nightshade Paolumu" },
+            { "LOC_MONSTER_EBONY_ODOGARON", "Ebony Odogaron" },
+            { "LOC_MONSTER_ANJANATH_FULGUR", "Fulgur Anjanath" },
+            { "LOC_MONSTER_PUKEI_PUKEI_CORAL", "Coral Pukei-Pukei" },
+            { "LOC_MONSTER_BRACHYDIOS", "Brachydios" },
+            { "LOC_MONSTER_VELKHANA", "Velkhana" },
+            { "LOC_MONSTER_BEOTODUS", "Beotodus" },
+            { "LOC_MONSTER_GLAVENUS", "Glavenus" },
+            { "LOC_MONSTER_ACIDIC_GLAVENUS", "Acidic Glavenus" },
+            { "LOC_MONSTER_BLACKVEIL_VAAL_HAZAK", "Blackveil Vaal Hazak" },
+            { "LOC_MONSTER_BARIOTH", "Barioth" },
+            { "LOC_MONSTER_SAVAGE_DEVILJHO", "Savage Deviljho" },
+            { "LOC_MONSTER_RUINER_NERGIGANTE", "Ruiner Nergigante" },
+            { "LOC_MONSTER_VIPER_TOBI_KADACHI", "Viper Tobi Kadachi" },
+            { "LOC_MONSTER_SHRIEKING_LEGIANA", "Shrieking Legiana" },
+            { "LOC_MONSTER_SEETHING_BAZELGEUSE", "Seething Bazelgeuse" },
+            { "LOC_MONSTER_YIAN_GARUGA", "Yian Garuga" },
+            { "LOC_MONSTER_SCARRED_YIAN_GARUGA", "Scarred Yian Garuga" },
+			{ "LOC_MONSTER_GOLD_RATHIAN", "Gold Rathian" },
+			{ "LOC_MONSTER_SILVER_RATHALOS", "Silver Rathalos" },
+            { "LOC_MONSTER_RAJANG", "Rajang" },
+
+            //{ "LOC_MONSTER_UKNOWN", "Unknown Monster" },
+            { "LOC_MONSTER_UKNOWN", "Kono Dio da!" },
             { "LOC_MONSTER_ANJANATH", "Anjanath" },
             { "LOC_MONSTER_AZURE_RATHALOS", "Azure Rathalos" },
             { "LOC_MONSTER_BARROTH", "Barroth" },
@@ -49,6 +81,29 @@ namespace SmartHunter.Config
             { "LOC_MONSTER_XENO_JIIVA", "Xeno'jiiva" },
             { "LOC_MONSTER_ZORAH_MAGDAROS", "Zorah Magdaros" },
             { "LOC_PART_UKNOWN", "Unknown Part" },
+
+            { "LOC_PART_HEAD_SNOW", "Head Snow" },
+            { "LOC_PART_BODY_SNOW", "Body Snow" },
+            { "LOC_PART_TAIL_SNOW", "Tail Snow" },
+
+            { "LOC_PART_HEAD_ICE", "Head Ice" },
+            { "LOC_PART_BODY_ICE", "Body Ice" },
+            { "LOC_PART_WINGS_ICE", "Wings Ice" },
+            { "LOC_PART_ARMS_ICE", "Arms Ice" },
+            { "LOC_PART_LEGS_ICE", "Legs Ice" },
+            { "LOC_PART_TAIL_ICE", "Tail Ice" },
+
+            { "LOC_PART_HEAD_ROCK", "Head Rock" },
+            { "LOC_PART_NECK_LEFT_ROCK", "Left Neck Rock" },
+            { "LOC_PART_NECK_RIGHT_ROCK", "Right Right Rock" },
+            { "LOC_PART_TAIL_ROCK", "Tail Rock" },
+            { "LOC_PART_WING_LEFT_ROCK", "Left Wing Rock" },
+            { "LOC_PART_WING_RIGHT_ROCK", "Right Wing Rock" },
+            { "LOC_PART_ARM_LEFT_ROCK", "Left Arm Rock" },
+            { "LOC_PART_ARM_RIGHT_ROCK", "Right Arm Rock" },
+            { "LOC_PART_LEGS_ROCK", "Legs Rock" },
+
+            { "LOC_PART_FIN", "Fin" },
             { "LOC_PART_HEAD", "Head" },
             { "LOC_PART_HEAD_LEFT", "Left Head" },
             { "LOC_PART_HEAD_RIGHT", "Right Head" },
@@ -66,6 +121,7 @@ namespace SmartHunter.Config
             { "LOC_PART_LIMBS_LEFT", "Left Limbs" },
             { "LOC_PART_LIMBS_RIGHT", "Right Limbs" },
             { "LOC_PART_TAIL", "Tail" },
+            { "LOC_PART_TAIL_BLADE", "Tail Blade" },
             { "LOC_PART_WINGS", "Wings" },
             { "LOC_PART_WING_LEFT", "Left Wing" },
             { "LOC_PART_WING_RIGHT", "Right Wing" },
@@ -103,6 +159,48 @@ namespace SmartHunter.Config
             { "LOC_REMOVABLE_PART_HORNS", "Removable Horns" },
             { "LOC_REMOVABLE_PART_HORNS_2", "Removable Horn Chip" },
 
+            //To test monster parts
+            { "LOC_PART_0", "0" },
+            { "LOC_PART_1", "1" },
+            { "LOC_PART_2", "2" },
+            { "LOC_PART_3", "3" },
+            { "LOC_PART_4", "4" },
+            { "LOC_PART_5", "5" },
+            { "LOC_PART_6", "6" },
+            { "LOC_PART_7", "7" },
+            { "LOC_PART_8", "8" },
+            { "LOC_PART_9", "9" },
+            { "LOC_PART_10", "10" },
+            { "LOC_PART_11", "11" },
+            { "LOC_PART_12", "12" },
+            { "LOC_PART_13", "13" },
+            { "LOC_PART_14", "14" },
+            { "LOC_PART_15", "15" },
+            { "LOC_PART_16", "16" },
+            { "LOC_PART_17", "17" },
+            { "LOC_PART_18", "18" },
+            { "LOC_PART_19", "19" },
+            { "LOC_PART_20", "20" },
+            { "LOC_PART_21", "21" },
+            { "LOC_PART_22", "22" },
+            { "LOC_PART_23", "23" },
+            { "LOC_PART_24", "24" },
+            { "LOC_PART_25", "25" },
+            { "LOC_PART_26", "26" },
+            { "LOC_PART_27", "27" },
+            { "LOC_PART_28", "28" },
+            { "LOC_PART_29", "29" },
+            { "LOC_PART_30", "30" },
+            { "LOC_PART_31", "31" },
+            { "LOC_PART_32", "32" },
+
+            //removables
+            { "LOC_REMOVABLE_PART_HEAD", "Removable Head" },
+            { "LOC_REMOVABLE_PART_HEAD_HEAD", "Removable Head+" },
+            { "LOC_REMOVABLE_PART_HEAD_HEAD_HEAD", "Removable Head++" },
+
+            //statuses
+            { "LOC_STATUS_0", "Status 0" },
             { "LOC_STATUS_EFFECT_UNKNOWN", "Unknown Status Effect" },
             { "LOC_STATUS_EFFECT_POISON", "Poison" },
             { "LOC_STATUS_EFFECT_PARALYSIS", "Paralysis" },
@@ -111,9 +209,15 @@ namespace SmartHunter.Config
             { "LOC_STATUS_EFFECT_MOUNT", "Mount" },
             { "LOC_STATUS_EFFECT_EXHAUST", "Exhaust" },
             { "LOC_STATUS_EFFECT_STUN", "Stun" },
+            { "LOC_STATUS_EFFECT_KO", "KO" },
             { "LOC_STATUS_EFFECT_TRANQUILIZE", "Tranquilize" },
             { "LOC_STATUS_EFFECT_FLASH", "Flash" },
-            { "LOC_STATUS_EFFECT_DUNG", "Dung" },
+            { "LOC_STATUS_EFFECT_DUNG", "Dung Pods" },
+            { "LOC_STATUS_EFFECT_KNOW_DOWN", "Knockdown" },
+            { "LOC_STATUS_EFFECT_SMOKING", "Smoking" },
+            { "LOC_STATUS_EFFECT_VIOLATED", "Violated" },
+            { "LOC_STATUS_EFFECT_CLAW_ATTACK", "Claw Attack" },
+            { "LOC_STATUS_EFFECT_FELVYNE_KNOCK_DOWN_TRAP", "Felvyne Knock Down Trap" },
 
             // Hunting Horn
             { "LOC_STATUS_EFFECT_SELF_IMPROVEMENT", "Self-improvement" },
@@ -193,6 +297,7 @@ namespace SmartHunter.Config
             { "LOC_STATUS_EFFECT_ARMORSKIN", "Armorskin" },
             { "LOC_STATUS_EFFECT_MEGA_ARMORSKIN", "Mega Armorskin" },
             { "LOC_STATUS_EFFECT_COOL_DRINK", "Cool Drink" },
+            { "LOC_STATUS_EFFECT_HOT_DRINK", "Hot Drink" },
             { "LOC_STATUS_EFFECT_PROTECTIVE_POLISH", "Protective Polish" },
             { "LOC_STATUS_EFFECT_AFFINITY_SLIDING", "Affinity Sliding" },
 
@@ -214,6 +319,32 @@ namespace SmartHunter.Config
             { "LOC_EQUIPMENT_MANTLE_IMMUNITY", "Immunity Mantle" },
             { "LOC_EQUIPMENT_MANTLE_BANDIT", "Bandit Mantle" },
             { "LOC_EQUIPMENT_AFFINITY_BOOSTER", "Affinity Booster" },
+            { "LOC_EQUIPMENT_CLEANSER_BOOSTER", "Cleanser Booster" },
+            { "LOC_EQUIPMENT_HEALTH_BOOSTER", "Health Booster" },
+            { "LOC_EQUIPMENT_ASSASSINS_HOOD", "Assassin's Hood" },
+
+            // Equipment recharg time
+
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_GHILLIE", "Recharge Ghillie Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_TEMPORAL", "Recharge Temporal Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_ROCKSTEADY", "Recharge Rocksteady Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_CHALLENGER", "Recharge Challenger Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_VITALITY", "Recharge Vitality Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_FIREPROOF", "Recharge Fireproof Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_WATERPROOF", "Recharge Waterproof Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_ICEPROOF", "Recharge Iceproof Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_THUNDERPROOF", "Recharge Thunderproof Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_DRAGONPROOF", "Recharge Dragonproof Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_GLIDER", "Recharge Glider Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_EVASION", "Recharge Evasion Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_IMPACT", "Recharge Impact Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_APOTHECARY", "Recharge Apothecary Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_IMMUNITY", "Recharge Immunity Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_MANTLE_BANDIT", "Recharge Bandit Mantle" },
+            { "LOC_EQUIPMENT_RECHARGE_AFFINITY_BOOSTER", "Recharge Affinity Booster" },
+            { "LOC_EQUIPMENT_RECHARGE_CLEANSER_BOOSTER", "Recharge Cleanser Booster" },
+            { "LOC_EQUIPMENT_RECHARGE_HEALTH_BOOSTER", "Recharge Health Booster" },
+            { "LOC_EQUIPMENT_RECHARGE_ASSASSINS_HOOD", "Recharge Assassin's Hood" },
 
             // Weapon
             { "LOC_WEAPON_INSECT_GLAIVE_ATTACK", "Attack Up" },
@@ -238,20 +369,20 @@ namespace SmartHunter.Config
             { "LOC_STATUS_EFFECT_PITFALL_TRAP", "Pitfall Trap" },
             { "LOC_STATUS_EFFECT_ELDERSEAL", "Elderseal" },
 
-            { "LOC_EQUIPMENT_ASSASSINS_HOOD", "Assassin's Hood" },
             { "LOC_MONSTER_LESHEN", "Leshen" },
+            { "LOC_MONSTER_ANCIENT_LESHEN", "Ancient Leshen" },
             { "LOC_REMOVABLE_PART_ANTLER_LEFT", "Removable Left Antler" },
             { "LOC_REMOVABLE_PART_ANTLER_RIGHT", "Removable Right Antler" },
+            { "LOC_JAGRAS_SUMMONER", "Jagras Summoner" },
 
             { "LOC_STATUS_EFFECT_RAGE", "Rage" },
             { "LOC_STATUS_EFFECT_STAMINA", "Stamina" },
             { "LOC_STATUS_EFFECT_FATIGUE", "Fatigue" },
-
-            { "LOC_MONSTER_ANCIENT_LESHEN", "Ancient Leshen" },
         };
         
         public LocalizationConfig()
         {
+
         }
     }
 }

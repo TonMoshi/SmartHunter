@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Windows;
+using System.Text;
 
 namespace SmartHunter.Core.Helpers
 {    
@@ -35,6 +35,8 @@ namespace SmartHunter.Core.Helpers
                 }
             }
 
+            return true; // we need to check only READ?
+            /*
             foreach (var protectionOrInclusive in pattern.Config.PageProtections)
             {
                 if (protectionFlags.HasFlag(protectionOrInclusive))
@@ -44,6 +46,7 @@ namespace SmartHunter.Core.Helpers
             }
 
             return false;
+            */
         }
 
         public static List<ulong> FindPatternAddresses(Process process, AddressRange addressRange, BytePattern pattern, bool stopAfterFirst)
@@ -55,8 +58,7 @@ namespace SmartHunter.Core.Helpers
             while (currentAddress < addressRange.End && !process.HasExited)
             {
                 WindowsApi.MEMORY_BASIC_INFORMATION64 memoryRegion;
-                var structByteCount = WindowsApi.VirtualQueryEx(process.Handle, (IntPtr)currentAddress, out memoryRegion, (uint)Marshal.SizeOf(typeof(WindowsApi.MEMORY_BASIC_INFORMATION64)));
-                if (structByteCount > 0
+                if (WindowsApi.VirtualQueryEx(process.Handle, (IntPtr)currentAddress, out memoryRegion, (uint)Marshal.SizeOf(typeof(WindowsApi.MEMORY_BASIC_INFORMATION64))) > 0
                     && memoryRegion.RegionSize > 0
                     && memoryRegion.State == (uint)WindowsApi.RegionPageState.MEM_COMMIT
                     && CheckProtection(pattern, memoryRegion.Protect))
@@ -73,40 +75,29 @@ namespace SmartHunter.Core.Helpers
                         regionEndAddress = addressRange.End;
                     }
 
+                    ulong regionBytesToRead = regionEndAddress - regionStartAddress;
+                    byte[] regionBytes = new byte[regionBytesToRead];
+
                     if (process.HasExited)
                     {
                         break;
                     }
 
-                    ulong regionBytesToRead = regionEndAddress - regionStartAddress;
-                    byte[] regionBytes = new byte[regionBytesToRead];
-
                     int lpNumberOfBytesRead = 0;
                     WindowsApi.ReadProcessMemory(process.Handle, (IntPtr)regionStartAddress, regionBytes, regionBytes.Length, ref lpNumberOfBytesRead);
 
                     var matchIndices = FindPatternMatchIndices(regionBytes, pattern, stopAfterFirst);
-
-                    if (matchIndices.Any() && stopAfterFirst)
+                    foreach (var matchIndex in matchIndices)
                     {
-                        var matchAddress = regionStartAddress + (ulong)matchIndices.First();
+                        var matchAddress = regionStartAddress + (ulong)matchIndex;
                         matchAddresses.Add(matchAddress);
 
+                        Log.WriteLine($"Found '{pattern.Config.Name}' at address 0x{matchAddress.ToString("X8")}");
+                    }
+                    if (matchAddresses.Any() && stopAfterFirst)
+                    {
                         break;
                     }
-                    else
-                    {
-                        foreach (var matchIndex in matchIndices)
-                        {
-                            var matchAddress = regionStartAddress + (ulong)matchIndex;
-                            matchAddresses.Add(matchAddress);
-                        }
-                    }
-                }
-
-                if (structByteCount == 0)
-                {
-                    Log.WriteLine("Page query returned 0 bytes");
-                    break;
                 }
 
                 currentAddress = memoryRegion.BaseAddress + memoryRegion.RegionSize;
@@ -266,7 +257,7 @@ namespace SmartHunter.Core.Helpers
             if (nullTerminatorIndex >= 0)
             {
                 Array.Resize(ref bytes, nullTerminatorIndex);
-                return System.Text.Encoding.UTF8.GetString(bytes);
+                return Encoding.UTF8.GetString(bytes);
             }
 
             return null;
